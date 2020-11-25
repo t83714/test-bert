@@ -1,7 +1,7 @@
 import torch
 import transformers
 import copy
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 from operator import itemgetter, attrgetter
 
 
@@ -40,6 +40,8 @@ def format_attn_tuple(atten_tuple: tuple):
 
 
 class BeamSearcher:
+    candidates_history:list = []
+
     def __init__(self, tokenizer: transformers.PreTrainedTokenizer, input_ids: torch.Tensor, attn_tuple: tuple, beam_size: int = 6):
         self.tokenizer = tokenizer
         self.beam_size = beam_size
@@ -66,17 +68,47 @@ class BeamSearcher:
         return (idx, w)
 
     def search(self):
+        self.candidates_history = []
         self.candidates: list[Candidate] = []
-        c = self.do_search()
-        return (
-            (self.tokenizer.convert_ids_to_tokens(self.input_ids[c.head]),
-             self.tokenizer.convert_ids_to_tokens(self.input_ids[c.prediction]),
-             self.tokenizer.convert_ids_to_tokens(self.input_ids[c.tail])),
-            c.weight
-        )
+        fact = self.do_search()
+        self.candidates_history += self.convert_candidate_list_to_tuple(self.candidates)
+
+        self.candidates: list[Candidate] = []
+        fact_rev = self.do_search(True)
+        self.candidates_history += self.convert_candidate_list_to_tuple(self.candidates)
+
+        if fact.weight >= fact_rev.weight:
+            return self.convert_candidate_to_tuple(fact)
+        else:
+            return self.convert_candidate_to_tuple(fact_rev)
+
+    def convert_candidate_list_to_tuple(self, c_list: List[Candidate], is_reverse: bool = False):
+        result_list = []
+        for item in c_list:
+            result_list.append(
+                self.convert_candidate_to_tuple(item, is_reverse))
+        return result_list
+
+    def convert_candidate_to_tuple(self, c: Candidate, is_reverse: bool = False):
+        if is_reverse == False:
+            return (
+                (None if c.head is None else self.tokenizer.convert_ids_to_tokens(self.input_ids[c.head]),
+                 None if c.prediction is None else self.tokenizer.convert_ids_to_tokens(
+                 self.input_ids[c.prediction]),
+                 None if c.tail is None else self.tokenizer.convert_ids_to_tokens(self.input_ids[c.tail])),
+                c.weight
+            )
+        else:
+            return (
+                (None if c.head is None else self.tokenizer.convert_ids_to_tokens(self.input_ids[-c.head]),
+                 None if c.prediction is None else self.tokenizer.convert_ids_to_tokens(
+                 self.input_ids[-c.prediction]),
+                 None if c.tail is None else self.tokenizer.convert_ids_to_tokens(self.input_ids[-c.tail])),
+                c.weight
+            )
 
     def do_search(self, is_reverse: bool = False):
-        ids = self.input_ids.reverse() if is_reverse else self.input_ids
+        ids = self.input_ids[::-1] if is_reverse else self.input_ids
         for x in range(len(ids)):
             for y in range(len(ids)):
                 self.search_with_ht(x, y, is_reverse)
@@ -94,11 +126,12 @@ class BeamSearcher:
             self.candidates.append(Candidate(weight, head_idx, tail_idx))
 
     def search_predication(self, is_reverse: bool = False):
-        ids = self.input_ids.reverse() if is_reverse else self.input_ids
+        ids = self.input_ids[::-1] if is_reverse else self.input_ids
         for p_idx in range(len(ids)):
             weight_list = [0]*len(self.candidates)
-            for c_idx,c in enumerate(self.candidates):
-                if p_idx==c.head or p_idx==c.tail: continue
+            for c_idx, c in enumerate(self.candidates):
+                if p_idx == c.head or p_idx == c.tail:
+                    continue
                 weight = self.get_weight(
                     c.head, p_idx, is_reverse) + self.get_weight(p_idx, c.tail, is_reverse)
                 weight_list[c_idx] = weight

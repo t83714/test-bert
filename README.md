@@ -43,3 +43,7 @@ $ python
 ```bash
 python test.py
 ```
+
+The program will ask you to input a sentence and return:
+- a fact found 
+- plus any other candidate found
