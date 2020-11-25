@@ -1,8 +1,13 @@
-from transformers import BertTokenizer, BertModel
 import torch
+from transformers import BertTokenizer, BertModel
+from BeamSearcher import BeamSearcher
+from format_attn_tuple import format_attn_tuple
 
 torch.set_printoptions(profile="full")
 
+m1 = torch.tensor([0.2, 0.4, 0.4])
+m2 = torch.tensor([0.3, 0.5, 0.2])
+mx = torch.mean(torch.stack([m1, m2]), 0)
 
 def format_attention(attention):
     squeezed = []
@@ -25,7 +30,17 @@ outputs = model(**inputs, output_attentions=True, return_dict = False)
 
 attention = outputs[-1]
 
+searcher = BeamSearcher(tokenizer, inputs.input_ids, outputs[-1])
+
+f = searcher.search()
+
+print(f)
+
 # format 12 of 1 x 12 x 4 x 4 tensor to 12 x 12 x 4 x 4 tensor
-attn = format_attention(attention)
+attn = format_attn_tuple(attention)
+
+torch.tensor(attn.size())
 
 print(attn) 
+
+
