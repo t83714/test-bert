@@ -15,7 +15,7 @@ model = BertModel.from_pretrained('bert-base-uncased')
 
 
 def process_sentence(sentence):
-    print("Receive sentence: ", sentence, "\n")
+    print("Receive sentence: ", sentence)
 
     inputs = tokenizer(sentence, return_tensors="pt", add_special_tokens=False)
     outputs = model(**inputs, output_attentions=True, return_dict=False)
@@ -24,8 +24,8 @@ def process_sentence(sentence):
 
     fact = searcher.search()
 
-    print("\nFound fact: ",
-          " -> ".join(map(lambda item: item[0] + "("+str(item[1])+")", list(fact))), "\n")
+    print("Found fact: ",
+          " -> ".join(map(lambda item: str(item[0]) + "("+str(item[1])+")", list(fact))), "\n")
 
 
 for s in sentences:

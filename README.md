@@ -25,7 +25,7 @@ conda activate pytorch
 conda install pytorch torchvision -c pytorch
 # install transformers
 pip install transformers[torch]
-pip install pandas tabulate
+pip install pandas tabulate nltk
 ```
 
 Verify Pytorch installation:
