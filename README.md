@@ -25,6 +25,7 @@ conda activate pytorch
 conda install pytorch torchvision -c pytorch
 # install transformers
 pip install transformers[torch]
+pip install pandas tabulate
 ```
 
 Verify Pytorch installation:
