@@ -88,7 +88,7 @@ class SimpleSearcher:
 
     def is_stop_token_id(self, id) -> bool:
         """Test id if it's a stop word token id or punctuation"""
-        stop_words = {'the', 'a', 'an'}
+        stop_words = {'the', 'a', 'an', 'for', 'than', 'to', 'in', 'at'}
         str = self.id_to_token(id)
         if str in stop_words:
             return True
@@ -136,7 +136,7 @@ class SimpleSearcher:
         token_str: str = None
         for x in range(total_token_num):
             w = self.attn_matrix[x][x].item()
-            if w >= weight and self.is_stop_token_id(x) == False and id not in self.selected_ids:
+            if w >= weight and self.is_stop_token_id(x) == False and x not in self.selected_ids:
                 id = x
                 weight = w
                 token_str, subword_ids = self.look_for_sub_words(id)
